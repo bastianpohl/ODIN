@@ -654,7 +654,8 @@ CLASS ZCL_ODIN_POSTING IMPLEMENTATION.
             <fs> = line-value.
             IF component = 'BUKRS' OR component = 'BWART' OR component = 'LIFNR' OR component = 'KUNNR' OR component = 'HKONT' OR component = 'AUFNR'
               OR component = 'KOSTL' OR component = 'VBEL2' OR component = 'EBELN' OR component = 'KUNNR_GL' OR component = 'LIFNR_GL'
-              or component = 'ANLN1' or component = 'ANLN2'.
+              OR component = 'ANLN1' OR component = 'ANLN2' OR component = 'SWENR' OR component = 'SGENR' OR component = 'SGRNR' OR component = 'SMENR' 
+              OR component = 'RANL' OR component = 'SBERI' OR component = 'SEMPSL' OR component = 'SBEWART'.
               CALL FUNCTION 'CONVERSION_EXIT_ALPHA_INPUT'
                 EXPORTING
                   input  = <fs>
@@ -896,6 +897,8 @@ CLASS ZCL_ODIN_POSTING IMPLEMENTATION.
           t_mwdat        TYPE TABLE OF rtax1u15,
           tax            TYPE bset-fwste,
           itemno_tax     LIKE itemno VALUE 9999999999,
+          realestate     TABLE OF bapiacre09,
+          s_realestate   TYPE bapiacre09,
           segments       TYPE i,
           msg            TYPE string,
           ktopl          TYPE t001-ktopl.
@@ -917,6 +920,7 @@ CLASS ZCL_ODIN_POSTING IMPLEMENTATION.
         header-username = sy-uname.
         header-fisc_year = s_document-gjahr.
         header-fis_period = s_document-monat.
+        header-tcode = sy-tcode.
         IF s_document-doc_status IS NOT INITIAL.
           ASSIGN COMPONENT 'DOC_STATUS' OF STRUCTURE header TO <fs>. "Using field symbol for downwards compatibility (component doc_status might lack in older releases)
           IF sy-subrc = 0.
@@ -1009,6 +1013,7 @@ CLASS ZCL_ODIN_POSTING IMPLEMENTATION.
         s_glaccount-customer = s_document-kunnr_gl.
         s_glaccount-vendor_no = s_document-lifnr_gl.
         s_glaccount-profit_ctr = s_document-prctr.
+        s_glaccount-auftnr = s_document-auftnr.
         APPEND s_glaccount TO glaccount.
 
         IF s_document-mwskz IS NOT INITIAL.
@@ -1153,6 +1158,32 @@ CLASS ZCL_ODIN_POSTING IMPLEMENTATION.
         APPEND s_amount TO amount.
       ENDIF.
 
+      IF s_document-swenr IS NOT INITIAL OR 
+        s_document-sgenr IS NOT INITIAL OR
+        s_document-sgrnr IS NOT INITIAL OR
+        s_document-smenr IS NOT INITIAL OR
+        s_document-snksl IS NOT INITIAL OR
+        s_document-sempsl IS NOT INITIAL OR
+        s_document-ranl IS NOT INITIAL OR
+        s_document-sbewart IS NOT INITIAL OR
+        s_document-sberi IS NOT INITIAL OR
+        s_document-ddat IS NOT INITIAL OR
+        s_document-poptsatz IS NOT INITIAL.
+        s_realestate-itemno_acc = itemno.
+        s_realestate-business_entity = s_document-swenr.
+        s_realestate-buildung = s_document-sgenr.
+        s_realestate-property = s_document-sgrnr.
+        s_realestate-rental_object = s_document-smenr.
+        s_realestate-serv_charge_key = s_document-snksl.
+        s_realestate-settlement_unit = s_document-sempsl.
+        s_realestate-contract_no = s_document-ranl.
+        s_realestate-flow_type = s_document-sbewart.
+        s_realestate-corr_item = s_document-sberi.
+        s_realestate-ref_date = s_document-ddat.
+        s_realestate-option_rate = s_document-poptsatz.
+        APPEND s_realestate TO realestate.
+      ENDIF.
+
     ENDLOOP.
 
     IF me->strategy IS NOT INITIAL.
@@ -1172,6 +1203,7 @@ CLASS ZCL_ODIN_POSTING IMPLEMENTATION.
           accounttax        = bapitax
           currencyamount    = amount
           extension2        = extension2
+          realestate        = realestate
           accountwt         = wht.
     ENDIF.
 
@@ -1188,6 +1220,7 @@ CLASS ZCL_ODIN_POSTING IMPLEMENTATION.
           currencyamount    = amount
           extension2        = extension2
           accountwt         = wht
+          realestate        = realestate
           return            = bapiret.
     ELSE.
       CALL FUNCTION 'BAPI_ACC_DOCUMENT_POST'
@@ -1204,6 +1237,7 @@ CLASS ZCL_ODIN_POSTING IMPLEMENTATION.
           currencyamount    = amount
           extension2        = extension2
           accountwt         = wht
+          realestate        = realestate
           return            = bapiret.
     ENDIF.
     LOOP AT bapiret INTO s_bapiret WHERE type = 'E' OR type = 'A'.
