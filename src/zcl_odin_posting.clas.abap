@@ -897,7 +897,7 @@ CLASS ZCL_ODIN_POSTING IMPLEMENTATION.
           t_mwdat        TYPE TABLE OF rtax1u15,
           tax            TYPE bset-fwste,
           itemno_tax     LIKE itemno VALUE 9999999999,
-          realestate     TABLE OF bapiacre09,
+          realestate     TYPE TABLE OF bapiacre09,
           s_realestate   TYPE bapiacre09,
           segments       TYPE i,
           msg            TYPE string,
